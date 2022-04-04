@@ -142,9 +142,13 @@ class PublicKey:
 
 
 def gen_key_pair():
-    priKey = PrivateKey()
-    pubKey = priKey.publicKey()
-    return priKey.toString(), pubKey.toString(compressed=False)
+    """
+    生成公私钥
+    :return: private_key,public_key (str,str)
+    """
+    private_key = PrivateKey()
+    public_key = private_key.publicKey()
+    return private_key.toString(), public_key.toString(compressed=False)
 
 
 from gmssl import sm2
@@ -157,6 +161,7 @@ class SM2Crypto:
     ref https://blog.csdn.net/weixin_45471729/article/details/121488452
     :return:
     """
+    gen_key = gen_key_pair  # 生成密钥
 
     def __init__(self, private_key, public_key):
         if public_key is None:
@@ -202,6 +207,21 @@ class SM2Crypto:
         raw = self.sm2_crypt.encrypt(data)
         return raw.hex()
 
+    @staticmethod
+    def init_session(session, request):
+        """
+        向会话存入加密参数
+        :param session:
+        :param request:
+        :return:
+        """
+        private_key, public_key = gen_key_pair()
+        public_key = "04" + public_key  # 前端解密公钥需要130bit
+        session['private_key'] = private_key
+        session['public_key'] = public_key
+        session["client_key"] = request.get("publicKey")
+        return private_key, public_key
+
 
 if __name__ == "__main__":
     import time
@@ -210,7 +230,7 @@ if __name__ == "__main__":
     form = {
         "userId": "20189990001",
         "userName": "sad0001",
-        "college": "asd",
+        "department": "asd",
         "major": "asd",
         "clazz": "3",
         "passwd": "20180001",

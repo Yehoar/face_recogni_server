@@ -1,31 +1,40 @@
-__all__ = ["create_salt", "md5_with_salt", "parse_request", "base64_to_image"]
+__all__ = ["random_str", "parse_request", "base64_to_image"]
 
 import json
 import base64
 import traceback
-from random import sample
-from hashlib import md5
 from PIL import Image
+from random import sample
+from app.config import BaseConfig
 
-from app.utils.sm2utils import SM2Crypto
 
-
-def create_salt(length=32):
+def random_str(size=32):
     base = "qwertyuiopasdfghjklzxcvbnm" \
            "QWERTYUIOPASDFGHJKLZXCVBNM" \
-           "1234567890+-*/@!&^%$#~{}[](),.?:;"  # 85
-    return "".join(sample(base, length))
+           "1234567890+-*/@!&^%$#~{}[](),.?:;<>"
+    return "".join(sample(base, size))
 
 
-def md5_with_salt(data, salt):
-    m = md5()
-    if isinstance(data, str):
-        data = data.encode(encoding="utf8")
-    if isinstance(salt, str):
-        salt = salt.encode(encoding="utf8")
-    m.update(data)
-    m.update(salt)
-    return m.hexdigest()
+def get_crypto(session):
+    if BaseConfig.CRYPTO_TYPE.startswith("AES"):
+        from app.utils.aes import AESCrypto
+        key = session.get("aes_key", None)
+        iv = session.get("aes_iv", None)
+        if None in (key, iv):
+            return None
+        crypto = AESCrypto(key, iv)
+        return crypto
+    elif BaseConfig.CRYPTO_TYPE == "SM2":
+        # from app.utils.sm2 import SM2Crypto
+        # private_key = session.get("private_key", None)
+        # public_key = session.get("public_key", None)
+        # if private_key is None:
+        #     return None
+        # crypto = SM2Crypto(private_key, public_key)
+        # return crypto
+        raise Exception("弃用的加密算法")
+    else:
+        raise NotImplemented("不支持的加密算法")
 
 
 def parse_request(data, session):
@@ -42,19 +51,17 @@ def parse_request(data, session):
             enc_data = data.get("json", None)
             if enc_data is None:
                 return False, "参数错误"
-            private_key = session.get("private_key", None)
-            public_key = session.get("public_key", None)
-            if private_key is None:
+            crypto = get_crypto(session)
+            if crypto is None:
                 return False, "错误的会话"
-            crypto = SM2Crypto(private_key, public_key)
             data = crypto.decrypt(enc_data)  # 解密得到明文字符串
             data = json.loads(data)  # 解析为json
             data["encrypt"] = True
         else:
             data["encrypt"] = False
         return True, data
-    except UnicodeDecodeError:
-        return False, "密钥不匹配"
+    except (UnicodeDecodeError, TypeError):
+        return False, "解密失败"
     except Exception:
         traceback.print_exc()
     return False, "服务器内部错误"

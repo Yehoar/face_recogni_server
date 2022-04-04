@@ -1,3 +1,5 @@
+__all__ = ["BaseConfig", "AppConfig"]
+
 import os
 import redis
 import platform
@@ -5,6 +7,37 @@ import platform
 # 暂时禁用GPU
 os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
+
+class MySQL:
+    """
+    MySQL参数
+    """
+    DB_DIALECT = "mysql"
+    DB_DRIVER = "pymysql"
+    DB_USER = "root"
+    DB_PWD = "for_pwd_in_mysql"
+    DB_HOST = "127.0.0.1"
+    DB_PORT = "3306"
+    DB_DATABASE = "face_recogni"
+    DB_CHARSET = "utf8"
+
+    @classmethod
+    def url(cls):
+        return "{}+{}://{}:{}@{}:{}/{}?charset={}".format(
+            cls.DB_DIALECT, cls.DB_DRIVER, cls.DB_USER, cls.DB_PWD,
+            cls.DB_HOST, cls.DB_PORT, cls.DB_DATABASE, cls.DB_CHARSET
+        )
+
+
+class Redis:
+    """
+    Redis 参数
+    """
+    REDIS_HOST = "localhost"
+    REDIS_PORT = 6379
+    REDIS_DB = 0
+    REDIS_PWD = "for_pwd_in_redis"
 
 
 # 保存app中不使用的全局设置
@@ -21,23 +54,7 @@ class BaseConfig:
     TEMPLATE_FOLDER = f"{BASE_PATH}/templates"
     STATIC_FOLDER = f"{BASE_PATH}/static"
 
-    CRYPTO_TYPE = "AES"  # 加密类型
-
-    # Redis
-    REDIS_HOST = "localhost"
-    REDIS_PORT = 6379
-    REDIS_DB = 0
-    REDIS_PWD = "for_pwd_in_redis"
-
-    # MySQL
-    DB_DIALECT = "mysql"
-    DB_DRIVER = "pymysql"
-    DB_USER = "root"
-    DB_PWD = "for_pwd_in_mysql"
-    DB_HOST = "127.0.0.1"
-    DB_PORT = "3306"
-    DB_DATABASE = "face_recogni"
-    DB_CHARSET = "utf8"
+    CRYPTO_TYPE = "AES-128-CBC"  # AES-128 CBC
 
     # 微信前端交互
     CODE_TO_SESSION = {
@@ -70,25 +87,20 @@ class AppConfig:
     # session有效期/秒
     PERMANENT_SESSION_LIFETIME = 7200  # 默认120分钟
     # Redis连接
-    SESSION_REDIS = redis.Redis(host=BaseConfig.REDIS_HOST,
-                                port=BaseConfig.REDIS_PORT,
-                                db=BaseConfig.REDIS_DB,
+    SESSION_REDIS = redis.Redis(host=Redis.REDIS_HOST,
+                                port=Redis.REDIS_PORT,
+                                db=Redis.REDIS_DB,
                                 # password=BaseConfig.REDIS_PWD
                                 )
 
     # 数据库配置
-    SQLALCHEMY_DATABASE_URI = "{}+{}://{}:{}@{}:{}/{}?charset={}".format(
-        BaseConfig.DB_DIALECT,
-        BaseConfig.DB_DRIVER,
-        BaseConfig.DB_USER,
-        BaseConfig.DB_PWD,
-        BaseConfig.DB_HOST,
-        BaseConfig.DB_PORT,
-        BaseConfig.DB_DATABASE,
-        BaseConfig.DB_CHARSET
-    )
+    SQLALCHEMY_DATABASE_URI = MySQL.url()
     SQLALCHEMY_TRACK_MODIFICATIONS = False  # 关闭警告
     SQLALCHEMY_POOL_RECYCLE = 4 * 60 * 60  # 连接池归还时间
 
+    # 语言
+    BABEL_DEFAULT_TIMEZONE = "UTC"
+    BABEL_DEFAULT_LOCALE = "zh_CN"
 
-__all__ = ["BaseConfig", "AppConfig"]
+    # 关闭WTF的CSRF
+    WTF_CSRF_CHECK_DEFAULT = False

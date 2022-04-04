@@ -7,9 +7,9 @@ import json
 from . import bp_service
 from app.config import BaseConfig, AppConfig
 from app.facelib.face_recogni import FaceRecogni
-from app.db import db
-from app.db.models import Embedding, User
+from app.models.models import Embedding, User
 from app.utils.utils import parse_request, base64_to_image
+from app.extensions import db
 
 import os
 import time
@@ -79,8 +79,8 @@ def anti_spoof():
             return jsonify(status_code="fail", message="识别失败", socre=f"{np.mean(dist):2.4f}")
 
         for embedding in embeddings:
-            embedding = embedding.tobytes().hex()
-            embedding = Embedding(embd_bytes=embedding, user_id=current_user.user_id, create_time=datetime.now())
+            embedding = base64.b64encode(embedding.tobytes()).decode("utf-8")
+            embedding = Embedding(embdBytes=embedding, userId=current_user.get_id())
             db.session.add(embedding)
         db.session.commit()
         return jsonify(status_code="success", message="ok", socre=f"{np.mean(dist):2.4f}")
@@ -120,10 +120,12 @@ def face_collect():
         if nums <= 1 or nums >= 10:
             return jsonify(status_code="fail", message="参数错误")
         embeddings = []
+        embdBytes = []
         for idx in range(nums):
             embd = data.get(f"embedding{idx}", None)
-            if embd is None:
+            if embd is None or embd == "":
                 return jsonify(status_code="fail", message="参数错误")
+            embdBytes.append(embd)
             embd = base64.b64decode(embd)
             embd = np.frombuffer(embd, dtype=np.float32)
             embeddings.append(embd)
@@ -134,10 +136,8 @@ def face_collect():
 
         if not issame:
             return jsonify(status_code="fail", message="识别失败", socre=f"{np.mean(dist):2.4f}")
-
-        for embedding in embeddings:
-            embedding = embedding.tobytes().hex()
-            embedding = Embedding(embd_bytes=embedding, user_id=current_user.user_id, create_time=datetime.now())
+        for embedding in embdBytes:
+            embedding = Embedding(embdBytes=embedding, userId=current_user.get_id())
             db.session.add(embedding)
         db.session.commit()
         return jsonify(status_code="success", message="ok", socre=f"{np.mean(dist):2.4f}")
@@ -182,7 +182,8 @@ def face_recogni():
                 return jsonify(status_code="fail", message="not found")
             gallery = []
             for embedding in embeddings:
-                embedding = np.frombuffer(bytes.fromhex(embedding.embd_bytes), dtype=np.float32)
+                embedding = base64.b64decode(embedding.embdBytes.encode("utf-8"))
+                embedding = np.frombuffer(embedding, dtype=np.float32)
                 gallery.append(embedding)
             gallery = np.vstack(gallery)
             dist = np.linalg.norm(np.subtract(query, gallery), axis=1)
@@ -195,23 +196,16 @@ def face_recogni():
 
             dist_min = dist[dist_argmin]
             if dist_min <= FaceHandler.threshold:
-                user = embeddings[dist_argmin]
-                user = User.query.get(user.user_id)
+                user = embeddings[dist_argmin].user
+                user = User.query.filter_by(uuid=user.uuid).first()
                 print(user)
-                info = dict(
-                    userId=user.user_id,
-                    userName=user.user_name,
-                    college=user.college,
-                    major=user.major,
-                    clazz=user.clazz
-                )
                 resp = dict(
                     status_code="success",
                     message="ok",
-                    info=info,
+                    info=str(user),
                     score=str(dist_min)
                 )
-                db.session.remove()
+                db.session.remove()  # 防止连接池耗尽
                 return jsonify(resp)
             offset += page_size
 
