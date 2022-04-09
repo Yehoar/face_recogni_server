@@ -1,11 +1,15 @@
-__all__ = ["random_str", "parse_request", "base64_to_image"]
+__all__ = ["random_str", "parse_request", "base64_to_image", "parse_df"]
+
+from app.config import BaseConfig
 
 import json
 import base64
 import traceback
 from PIL import Image
 from random import sample
-from app.config import BaseConfig
+
+import io
+import pandas as pd
 
 
 def random_str(size=32):
@@ -46,6 +50,7 @@ def parse_request(data, session):
     """
     if data is None:
         return False, "参数错误"
+    # noinspection PyBroadException
     try:
         if data.get("encrypt", False):  # 如果有加密，解析加密内容
             enc_data = data.get("json", None)
@@ -89,3 +94,28 @@ def base64_to_image(b64_str, size, mode="RGBA"):
     except ValueError:
         traceback.print_exc()
     return False, "图片转换失败"
+
+
+def parse_df(filename: str, file_data: bytes, try_convert=False) -> pd.DataFrame:
+    """
+    从字节流中将csv/xlsx解析成pandas.DataFrame
+    :param filename: str
+    :param file_data: utf-8 bytes
+    :param try_convert: 尝试编码转换
+    :return: pd.DataFrame
+    """
+    df = None
+
+    if try_convert:  # 尝试转换编码
+        try:
+            tmp = file_data.decode("gbk").encode("utf8")
+            file_data = tmp
+        except UnicodeDecodeError:
+            pass
+
+    if filename.endswith(".csv"):
+        df = pd.read_csv(io.BytesIO(file_data))
+    elif filename.endswith(".xlsx"):
+        df = pd.read_excel(io.BytesIO(file_data), sheet_name=0)
+
+    return df

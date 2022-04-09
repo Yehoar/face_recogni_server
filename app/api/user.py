@@ -4,16 +4,18 @@ user.py
 """
 from . import bp_service
 
+import io
 import time
 import base64
 import traceback
+import pandas as pd
 
 from flask import request, session, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
 
 from app.extensions import db, login_manager
-from app.models.models import User, Role
-from app.api.forms import LoginForm, RegisterForm
+from app.models.models import User, ExamInfo, ExamList
+from app.api.forms import UserLoginForm, RegisterForm, ExamInfoForm
 
 from app.utils.utils import parse_request
 from app.utils.aes import AESCrypto
@@ -98,10 +100,9 @@ def login():
         ret, data = parse_request(data, session)
         if not ret:
             return jsonify(status_code="fail", message=data)
-        form = LoginForm(formdata=None, data=data)
+        form = UserLoginForm(formdata=None, data=data)
         if not form.validate():
-            error = form.form_errors[0]
-            return jsonify(status_code="fail", message=error)
+            return jsonify(status_code="fail", message=form.errors)
         data = form.data  # dict
         user = User.query.filter_by(userId=data["userId"]).first()
         if user is None:
@@ -135,8 +136,7 @@ def register():
             return jsonify(status_code="fail", message="注册失败")
         form = RegisterForm(formdata=None, data=data)
         if not form.validate():
-            error = form.form_errors[0]
-            return jsonify(status_code="fail", message=error)
+            return jsonify(status_code="fail", message=form.errors)
 
         data = form.data  # dict
         data["userType"] = "Student"
@@ -152,7 +152,7 @@ def register():
     return jsonify(status_code="fail", message="注册失败")
 
 
-@bp_service.route("/logout", methods=['POST'])
+@bp_service.route("/logout", methods=['GET', 'POST'])
 @login_required
 def logout():
     """
@@ -160,3 +160,5 @@ def logout():
     """
     logout_user()
     return jsonify(status_code="success", message="ok")
+
+

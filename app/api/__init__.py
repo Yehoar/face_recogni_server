@@ -8,5 +8,4 @@ bp_service = Blueprint(name="Service",
                        template_folder=BaseConfig.TEMPLATE_FOLDER)
 
 # 加载路由，必须在最后
-from .admin import init_admin
 from . import views

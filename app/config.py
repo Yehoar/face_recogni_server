@@ -1,4 +1,4 @@
-__all__ = ["BaseConfig", "AppConfig"]
+__all__ = ["Default", "BaseConfig", "AppConfig"]
 
 import os
 import redis
@@ -40,6 +40,23 @@ class Redis:
     REDIS_PWD = "for_pwd_in_redis"
 
 
+class Default:
+    ROLES = {  # 默认角色及权限
+        "Student": 0x0001,
+        "Teacher": 0x0010,
+        "Administrator": 0x0100,
+    }
+    ADMIN = {
+        "userId": "admin2022",
+        "name": "admin2022",
+        "passwd": "admin2022",
+        "department": "ADMIN",
+        "major": "ADMIN",
+        "clazz": 0,
+        "rName": "Administrator"
+    }
+
+
 # 保存app中不使用的全局设置
 class BaseConfig:
     DEBUG = True
@@ -49,6 +66,10 @@ class BaseConfig:
     RESOURCE_FOLDER = os.path.join(BASE_PATH, os.path.pardir, "resources")
     # 人脸识别模型
     FACE_RECOGNI_MODEL_PATH = os.path.join(RESOURCE_FOLDER, "FaceRecogniModel")
+    # 用户上传文件
+    UPLOAD_FILES = os.path.join(RESOURCE_FOLDER, "UploadFiles")
+    # 初始化标志
+    INIT_FLAG = os.path.join(RESOURCE_FOLDER, "flask.init")
 
     # Flask资源文件
     TEMPLATE_FOLDER = f"{BASE_PATH}/templates"
@@ -75,6 +96,8 @@ class BaseConfig:
 class AppConfig:
     # flask 配置
     DEBUG = BaseConfig.DEBUG
+    HOST = "0.0.0.0"
+    PORT = 5000
     SECRET_KEY = "for_pwd_in_Flask"
     # 解决中文乱码
     JSON_AS_ASCII = False
