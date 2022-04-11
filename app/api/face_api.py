@@ -17,10 +17,12 @@ import base64
 import warnings
 import traceback
 import numpy as np
-from datetime import datetime
 from flask import request, jsonify, current_app, session
 from flask_login import login_required, current_user
 
+# FaceHandler = False
+# if BaseConfig.USE_FACE_RECOGNI:
+#     FaceHandler = FaceRecogni.get_instance()
 FaceHandler = FaceRecogni.get_instance()
 
 
@@ -40,6 +42,9 @@ def anti_spoof():
     :return:
     """
     warnings.warn("该方法产生的编码精度存在问题", DeprecationWarning)
+    if BaseConfig.USE_FACE_RECOGNI:
+        return jsonify(status_code="fail", message="服务器未启用功能")
+
     logger = current_app.logger
     # 参数检查
     if request.json is None:
@@ -109,15 +114,14 @@ def face_collect():
     try:
         logger = current_app.logger
         data = request.get_json()
-        ret = parse_request(data, session)
-        if not ret[0]:
-            return jsonify(status_code="fail", message=ret[1])
-        data = ret[1]
-        # if data.get("encrypt", False):
-        #     return jsonify(status_code="fail", message="识别失败")
+        ret, data = parse_request(data, session)
+        if not ret:
+            return jsonify(status_code="fail", message=data)
+        if not data.get("encrypt", False):
+            return jsonify(status_code="fail", message="识别失败")
 
         nums = data.get("nums", 0)
-        if nums <= 1 or nums >= 10:
+        if nums <= 1 or nums >= 5:
             return jsonify(status_code="fail", message="参数错误")
         embeddings = []
         embdBytes = []
@@ -147,7 +151,7 @@ def face_collect():
 
 
 @bp_service.route("/recogni", methods=["POST"])
-# @login_required
+@login_required
 def face_recogni():
     """
     前端上传Embedding，进行人脸检索
@@ -160,10 +164,11 @@ def face_recogni():
     # noinspection PyBroadException
     try:
         data = request.get_json()
-        ret = parse_request(data, session)
-        if not ret[0]:
-            return jsonify(status_code="fail", message=ret[1])
-        data = ret[1]
+        ret, data = parse_request(data, session)
+        if not ret:
+            return jsonify(status_code="fail", message=data)
+        if not data.get("encrypt", False):
+            return jsonify(status_code="fail", message="识别失败")
         embedding = data.get("embedding", None)
         if embedding is None:
             return jsonify(status_code="fail", message="参数错误")
@@ -188,17 +193,10 @@ def face_recogni():
             gallery = np.vstack(gallery)
             dist = np.linalg.norm(np.subtract(query, gallery), axis=1)
             dist_argmin = np.argmin(dist)
-
-            print("===" * 20)
-            print(dist)
-            print(dist_argmin)
-            print("===" * 20)
-
             dist_min = dist[dist_argmin]
             if dist_min <= FaceHandler.threshold:
                 user = embeddings[dist_argmin].user
                 user = User.query.filter_by(uuid=user.uuid).first()
-                print(user)
                 resp = dict(
                     status_code="success",
                     message="ok",

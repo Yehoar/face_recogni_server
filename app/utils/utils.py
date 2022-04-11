@@ -1,4 +1,4 @@
-__all__ = ["random_str", "parse_request", "base64_to_image", "parse_df"]
+__all__ = ["random_str", "parse_request", "encrypt_response", "base64_to_image", "parse_df"]
 
 from app.config import BaseConfig
 
@@ -67,6 +67,25 @@ def parse_request(data, session):
         return True, data
     except (UnicodeDecodeError, TypeError):
         return False, "解密失败"
+    except Exception:
+        traceback.print_exc()
+    return False, "服务器内部错误"
+
+
+def encrypt_response(resp, session):
+    """
+    加密响应内容
+    :param resp:
+    :param session:
+    :return:
+    """
+    try:
+        crypto = get_crypto(session)
+        if not isinstance(resp, str):
+            resp = json.dumps(resp, ensure_ascii=False)
+        enc_data = crypto.encrypt(resp)
+        resp = {"encrypt": True, "json": enc_data}
+        return True, resp
     except Exception:
         traceback.print_exc()
     return False, "服务器内部错误"

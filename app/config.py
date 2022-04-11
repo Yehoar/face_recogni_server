@@ -1,5 +1,3 @@
-__all__ = ["Default", "BaseConfig", "AppConfig"]
-
 import os
 import redis
 import platform
@@ -34,7 +32,7 @@ class Redis:
     """
     Redis 参数
     """
-    REDIS_HOST = "localhost"
+    REDIS_HOST = "127.0.0.1"
     REDIS_PORT = 6379
     REDIS_DB = 0
     REDIS_PWD = "for_pwd_in_redis"
@@ -59,8 +57,8 @@ class Default:
 
 # 保存app中不使用的全局设置
 class BaseConfig:
-    DEBUG = True
-    BASE_PATH = os.path.dirname(__file__)
+    DEBUG = False
+    BASE_PATH = os.path.dirname(os.path.abspath(__file__))
     PLATFORM = platform.platform().lower()
     # 外部资源文件夹
     RESOURCE_FOLDER = os.path.join(BASE_PATH, os.path.pardir, "resources")
@@ -70,12 +68,18 @@ class BaseConfig:
     UPLOAD_FILES = os.path.join(RESOURCE_FOLDER, "UploadFiles")
     # 初始化标志
     INIT_FLAG = os.path.join(RESOURCE_FOLDER, "flask.init")
+    # 启动服务端人脸识别
+    USE_FACE_RECOGNI = False
 
     # Flask资源文件
     TEMPLATE_FOLDER = f"{BASE_PATH}/templates"
     STATIC_FOLDER = f"{BASE_PATH}/static"
 
-    CRYPTO_TYPE = "AES-128-CBC"  # AES-128 CBC
+    # 是否加密传输
+    CRYPTO_TYPE = "AES-128-CBC"
+
+    # 临时文件存放
+    TMP_PATH = os.path.join(BASE_PATH, "tmp")
 
     # 微信前端交互
     CODE_TO_SESSION = {
@@ -87,9 +91,6 @@ class BaseConfig:
             "grant_type": "authorization_code"
         }
     }
-
-    # debug参数
-    TMP_PATH = r"D:\MyProjects\PyCharm\face_recogni_server\app\tmp"
 
 
 # 只保存flask中用到的配置
@@ -113,12 +114,12 @@ class AppConfig:
     SESSION_REDIS = redis.Redis(host=Redis.REDIS_HOST,
                                 port=Redis.REDIS_PORT,
                                 db=Redis.REDIS_DB,
-                                # password=BaseConfig.REDIS_PWD
+                                # password=Redis.REDIS_PWD
                                 )
 
     # 数据库配置
     SQLALCHEMY_DATABASE_URI = MySQL.url()
-    SQLALCHEMY_TRACK_MODIFICATIONS = False  # 关闭警告
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_POOL_RECYCLE = 4 * 60 * 60  # 连接池归还时间
 
     # 语言

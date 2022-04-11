@@ -160,7 +160,8 @@ class FaceRecogni:
         if FaceRecogni.INSTANCE is None:
             FaceHandler = FaceRecogni()  # 只会创建一次
             FaceHandler.prepare()  # 加载配置
-            FaceHandler.warm_up(5)  # 预热
+            if BaseConfig.USE_FACE_RECOGNI:
+                FaceHandler.warm_up(5)  # 预热
             FaceRecogni.INSTANCE = FaceHandler
 
         return FaceRecogni.INSTANCE

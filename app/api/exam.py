@@ -13,8 +13,8 @@ from flask_login import login_required, current_user
 from app.extensions import db
 from app.models.models import User, ExamInfo, ExamList
 from app.api.forms import ExamInfoForm
-
-from app.utils.utils import parse_request, parse_df
+from app.config import BaseConfig
+from app.utils.utils import parse_request, encrypt_response, parse_df
 
 
 @bp_service.route("/create_exam", methods=['POST'])
@@ -37,8 +37,8 @@ def create_exam():
         form = ExamInfoForm(formdata=None, data=data)
         if not form.validate():
             return jsonify(status_code="fail", message=form.errors)
-        # if not current_user.is_active or current_user.role.power <= 0x01:
-        #     return jsonify(status_code="fail", message="权限不足")
+        if not current_user.is_active or current_user.role.power <= 0x01:
+            return jsonify(status_code="fail", message="权限不足")
 
         data = form.data  # dict
         # header = ["学号","姓名"]
@@ -89,8 +89,8 @@ def del_exam():
         ret, data = parse_request(data, session)
         if not ret:
             return jsonify(status_code="fail", message=data)
-        # if not current_user.is_active or current_user.role.power <= 0x01:
-        #     return jsonify(status_code="fail", message="权限不足")
+        if not current_user.is_active or current_user.role.power <= 0x01:
+            return jsonify(status_code="fail", message="权限不足")
 
         examId = data.get("examId", None)
         if examId is None:
@@ -116,8 +116,8 @@ def get_exam_list():
         nums = args.get("nums", 10)
         if not isinstance(nums, int) or nums < 1 or nums > 20:
             nums = 10
-        # if not current_user.is_active or current_user.role.power <= 0x01:
-        #     return jsonify(status_code="fail", message="权限不足")
+        if not current_user.is_active or current_user.role.power <= 0x01:
+            return jsonify(status_code="fail", message="权限不足")
         exams = ExamInfo.query.filter_by(userId=current_user.uuid).limit(nums).all()
         info = []
         for exam in exams:
@@ -134,6 +134,52 @@ def get_exam_list():
             info.append(cur)
         return jsonify(status_code="success", message="ok", info=info)
 
+    except Exception:
+        traceback.print_exc()
+    return jsonify(status_code="fail", message="服务器内部错误")
+
+
+@bp_service.route("/load_exam_data", methods=["GET"])
+@login_required
+def load_exam_data():
+    """
+    加载考试名单和人脸编码
+    """
+    try:
+        args = request.args.to_dict()
+        examId = args.get("examId", None)
+        if examId is None:
+            return jsonify(status_code="fail", message="参数错误")
+
+        if not current_user.is_active or current_user.role.power <= 0x01:
+            return jsonify(status_code="fail", message="权限不足")
+
+        exam = ExamInfo.query.filter_by(uuid=examId).first()
+        if exam is None:
+            return jsonify(status_code="fail", message="未查询到相关记录")
+        students = User.query.join(ExamList, User.uuid == ExamList.userId).filter(ExamList.examId == exam.uuid).all()
+        if students is None or len(students) <= 0:
+            return jsonify(status_code="fail", message="未查询到考试名单")
+        examList = []
+        for student in students:
+            info = {
+                "userId": student.userId,
+                "name": student.name,
+                "department": student.department,
+                "major": student.major,
+                "clazz": student.clazz,
+                "embd1": "",
+                "embd2": "",
+            }
+            for idx, embedding in enumerate(student.embedding, 1):
+                info[f"embd{idx}"] = embedding.embdBytes
+            examList.append(info)
+        if examList and BaseConfig.CRYPTO_TYPE:
+            ret, data = encrypt_response(examList, session)
+            if not ret:  # 加密失败
+                return jsonify(status_code="fail", message=data)
+            examList = data
+        return jsonify(status_code="success", message="ok", examList=examList)
     except Exception:
         traceback.print_exc()
     return jsonify(status_code="fail", message="服务器内部错误")

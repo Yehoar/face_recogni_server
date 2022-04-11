@@ -4,18 +4,16 @@ user.py
 """
 from . import bp_service
 
-import io
 import time
 import base64
 import traceback
-import pandas as pd
 
 from flask import request, session, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
 
-from app.extensions import db, login_manager
-from app.models.models import User, ExamInfo, ExamList
-from app.api.forms import UserLoginForm, RegisterForm, ExamInfoForm
+from app.extensions import login_manager
+from app.models.models import User
+from app.api.forms import UserLoginForm, RegisterForm
 
 from app.utils.utils import parse_request
 from app.utils.aes import AESCrypto

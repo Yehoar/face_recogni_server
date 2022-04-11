@@ -2,11 +2,13 @@
 admin.py
 后台管理界面
 """
+import os
+import datetime
+
 from app.api.forms import AdminLoginForm
 
 from flask import url_for, request, redirect
 from flask_login import current_user, login_user, logout_user, login_required
-
 from flask_admin import Admin, expose, AdminIndexView, BaseView
 from flask_admin.contrib.sqla import ModelView
 from flask_admin.contrib.fileadmin import FileAdmin, gettext, secure_filename
@@ -133,6 +135,8 @@ class MyFileAdmin(FileAdmin):
     def _save_form_files(self, directory, path, form):
         # 重载文件上传
         filename = self._separator.join([directory, secure_filename(form.upload.data.filename)])
+        root, ext = os.path.splitext(filename)
+        filename = "".join([root, "-", datetime.datetime.now().strftime("%Y%m%d%H%M%S"), ext])
         if self.storage.path_exists(filename):
             secure_name = self._separator.join([path, secure_filename(form.upload.data.filename)])
             raise Exception(gettext('File "%(name)s" already exists.', name=secure_name))
