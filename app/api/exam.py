@@ -173,6 +173,7 @@ def load_exam_data():
             }
             for idx, embedding in enumerate(student.embedding, 1):
                 info[f"embd{idx}"] = embedding.embdBytes
+                info[f"img{idx}"] = embedding.base64Img
             examList.append(info)
         if examList and BaseConfig.CRYPTO_TYPE:
             ret, data = encrypt_response(examList, session)

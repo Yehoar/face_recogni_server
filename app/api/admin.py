@@ -56,8 +56,9 @@ class EmbeddingView(BaseModelView):
     can_edit = False
     can_create = False
 
-    column_list = ("uuid", "userId", "createTime", "embdBytes")
-    column_labels = dict(uuid=u"特征编号", userId=u"学号", createTime=u"创建时间", embdBytes="特征值")
+    column_list = ("uuid", "userId", "createTime", "embdBytes", "base64Img")
+    column_labels = dict(uuid=u"特征编号", userId=u"学号", createTime=u"创建时间", embdBytes=u"特征值", base64Img=u"人脸图片")
+    column_exclude_list = ("embdBytes",)
     column_searchable_list = ["uuid", "userId"]
 
     def __init__(self, table, session, **kwargs):

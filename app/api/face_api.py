@@ -8,7 +8,7 @@ from . import bp_service
 from app.config import BaseConfig, AppConfig
 from app.facelib.face_recogni import FaceRecogni
 from app.models.models import Embedding, User
-from app.utils.utils import parse_request, base64_to_image
+from app.utils.utils import parse_request, base64_to_image, encrypt_response
 from app.extensions import db
 
 import os
@@ -125,11 +125,14 @@ def face_collect():
             return jsonify(status_code="fail", message="参数错误")
         embeddings = []
         embdBytes = []
+        base64Imgs = []
         for idx in range(nums):
             embd = data.get(f"embedding{idx}", None)
-            if embd is None or embd == "":
+            img = data.get(f"image{idx}", None)
+            if embd is None or embd == "" or img is None or img == "":
                 return jsonify(status_code="fail", message="参数错误")
             embdBytes.append(embd)
+            base64Imgs.append(img)
             embd = base64.b64decode(embd)
             embd = np.frombuffer(embd, dtype=np.float32)
             embeddings.append(embd)
@@ -140,8 +143,8 @@ def face_collect():
 
         if not issame:
             return jsonify(status_code="fail", message="识别失败", socre=f"{np.mean(dist):2.4f}")
-        for embedding in embdBytes:
-            embedding = Embedding(embdBytes=embedding, userId=current_user.get_id())
+        for embedding, img in zip(embdBytes, base64Imgs):
+            embedding = Embedding(embdBytes=embedding, base64Img=img, userId=current_user.get_id())
             db.session.add(embedding)
         db.session.commit()
         return jsonify(status_code="success", message="ok", socre=f"{np.mean(dist):2.4f}")
@@ -195,16 +198,20 @@ def face_recogni():
             dist_argmin = np.argmin(dist)
             dist_min = dist[dist_argmin]
             if dist_min <= FaceHandler.threshold:
-                user = embeddings[dist_argmin].user
+                embedding = embeddings[dist_argmin]
+                user = embedding.user
                 user = User.query.filter_by(uuid=user.uuid).first()
                 resp = dict(
-                    status_code="success",
-                    message="ok",
                     info=str(user),
+                    # img=embedding.base64Img,
                     score=str(dist_min)
                 )
+                if BaseConfig.CRYPTO_TYPE:
+                    ret, resp = encrypt_response(resp, session)
+                    if not ret:  # 加密失败
+                        return jsonify(status_code="fail", message=data)
                 db.session.remove()  # 防止连接池耗尽
-                return jsonify(resp)
+                return jsonify(status_code="success", message="ok", **resp)
             offset += page_size
 
     except Exception:

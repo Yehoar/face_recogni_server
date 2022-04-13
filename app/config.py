@@ -114,7 +114,7 @@ class AppConfig:
     SESSION_REDIS = redis.Redis(host=Redis.REDIS_HOST,
                                 port=Redis.REDIS_PORT,
                                 db=Redis.REDIS_DB,
-                                # password=Redis.REDIS_PWD
+                                password=Redis.REDIS_PWD
                                 )
 
     # 数据库配置

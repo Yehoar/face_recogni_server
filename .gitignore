@@ -8,3 +8,4 @@ tmp
 venv
 *.py[cod]
 **/__pycache__
+*.log

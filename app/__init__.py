@@ -133,7 +133,7 @@ def ensure_redis():
         r = redis.Redis(host=Redis.REDIS_HOST,
                         port=Redis.REDIS_PORT,
                         db=Redis.REDIS_DB,
-                        # password=Redis.REDIS_PWD
+                        password=Redis.REDIS_PWD
                         )
         redis_info = r.info()
         logger.info(f"Redis Connected Clients: {redis_info.get('connected_clients', 'FAILED')}")

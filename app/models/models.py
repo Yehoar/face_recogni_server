@@ -96,6 +96,7 @@ class Embedding(db.Model):
     userId = db.Column(db.Integer, db.ForeignKey("Users.uuid"), nullable=False, comment='用户编号')
     createTime = db.Column(db.DateTime, default=datetime.now, comment='创建时间')
     embdBytes = db.Column(db.Text, nullable=False, comment='特征值')
+    base64Img = db.Column(db.Text, nullable=False, comment='人脸图片')
 
     def __repr__(self):
         return f"Embedding(id:{self.uuid})"
