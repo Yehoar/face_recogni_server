@@ -118,7 +118,7 @@ def get_exam_list():
             nums = 10
         if not current_user.is_active or current_user.role.power <= 0x01:
             return jsonify(status_code="fail", message="权限不足")
-        exams = ExamInfo.query.filter_by(userId=current_user.uuid).limit(nums).all()
+        exams = ExamInfo.query.filter_by(userId=current_user.uuid).order_by(ExamInfo.createTime.desc()).limit(nums).all()
         info = []
         for exam in exams:
             beginTime = exam.beginTime.strftime("%Y-%m-%d %H:%M")

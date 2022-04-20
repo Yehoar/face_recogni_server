@@ -17,7 +17,7 @@ from app.api.forms import UserLoginForm, RegisterForm
 
 from app.utils.utils import parse_request
 from app.utils.aes import AESCrypto
-from app.config import AppConfig
+from app.config import AppConfig, BaseConfig
 
 SESSION_LIFETIME = AppConfig.PERMANENT_SESSION_LIFETIME  # 会话有效期
 
@@ -86,7 +86,7 @@ def login():
     """
     用户根据学号,密码进行登录，以绑定身份  POST 上传表单
     {
-        encrypt: bool 是否加密 必须为True
+        encrypt: bool 是否加密
         userId: str 账号
         passwd: str 密码
     }
@@ -98,6 +98,10 @@ def login():
         ret, data = parse_request(data, session)
         if not ret:
             return jsonify(status_code="fail", message=data)
+
+        if BaseConfig.CRYPTO_TYPE and not data.get("encrypt", False):
+            return jsonify(status_code="fail", message="登录失败")
+
         form = UserLoginForm(formdata=None, data=data)
         if not form.validate():
             return jsonify(status_code="fail", message=form.errors)
@@ -119,7 +123,7 @@ def register():
     """
     用户注册 POST 上传表单
     {
-        encrypt: bool 是否加密 必须为True
+        encrypt: bool 是否加密
         "userId", "passwd", "name", "department", "major", "clazz"
     }
     :return:
@@ -130,7 +134,7 @@ def register():
         ret, data = parse_request(data, session)
         if not ret:
             return jsonify(status_code="fail", message=data)
-        if not data.get("encrypt", False):
+        if BaseConfig.CRYPTO_TYPE and not data.get("encrypt", False):
             return jsonify(status_code="fail", message="注册失败")
         form = RegisterForm(formdata=None, data=data)
         if not form.validate():
@@ -158,5 +162,3 @@ def logout():
     """
     logout_user()
     return jsonify(status_code="success", message="ok")
-
-

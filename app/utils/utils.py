@@ -49,7 +49,7 @@ def parse_request(data, session):
     :return:
     """
     if data is None:
-        return False, "参数错误"
+        return False, "缺少参数"
     # noinspection PyBroadException
     try:
         if data.get("encrypt", False):  # 如果有加密，解析加密内容

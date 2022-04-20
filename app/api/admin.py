@@ -4,6 +4,8 @@ admin.py
 """
 import os
 import datetime
+# from jinja2 import Markup
+from markupsafe import Markup
 
 from app.api.forms import AdminLoginForm
 
@@ -51,15 +53,25 @@ class UserView(BaseModelView):
             model.set_password(passwd)
 
 
+# 显示人脸图片
+def _avatar(self, context, model, name):
+    return Markup('<img src="%s" alt="" style="width: 112px; height: 112px">' % model.base64Img)
+
+
 class EmbeddingView(BaseModelView):
     """人脸编码"""
     can_edit = False
     can_create = False
 
-    column_list = ("uuid", "userId", "createTime", "embdBytes", "base64Img")
-    column_labels = dict(uuid=u"特征编号", userId=u"学号", createTime=u"创建时间", embdBytes=u"特征值", base64Img=u"人脸图片")
+    column_list = ("uuid", "user.userId", "createTime", "embdBytes", "base64Img")
+    column_labels = {"uuid": u"特征编号",
+                     "user.userId": u"学号",
+                     "createTime": u"创建时间",
+                     "embdBytes": u"特征值",
+                     "base64Img": u"人脸图片"}
     column_exclude_list = ("embdBytes",)
-    column_searchable_list = ["uuid", "userId"]
+    column_searchable_list = ["uuid", "user.userId"]
+    column_formatters = {'base64Img': _avatar}
 
     def __init__(self, table, session, **kwargs):
         super(EmbeddingView, self).__init__(table, session, **kwargs)
@@ -135,7 +147,7 @@ class MyFileAdmin(FileAdmin):
 
     def _save_form_files(self, directory, path, form):
         # 重载文件上传
-        filename = self._separator.join([directory, secure_filename(form.upload.data.filename)])
+        filename = self._separator.join([directory, form.upload.data.filename])
         root, ext = os.path.splitext(filename)
         filename = "".join([root, "-", datetime.datetime.now().strftime("%Y%m%d%H%M%S"), ext])
         if self.storage.path_exists(filename):
@@ -157,6 +169,8 @@ class MyFileAdmin(FileAdmin):
 
     def process(self, filename, file_data):
         df = parse_df(filename, file_data)
+        if df is None:
+            raise Exception(gettext(f"文件解析失败"))
         need = {"学号", "姓名", "密码", "学院", "专业", "班级", "角色"}
         offer = set(df.columns.to_list())
         if len(need.intersection(offer)) != len(need):

@@ -117,7 +117,7 @@ def face_collect():
         ret, data = parse_request(data, session)
         if not ret:
             return jsonify(status_code="fail", message=data)
-        if not data.get("encrypt", False):
+        if BaseConfig.CRYPTO_TYPE and not data.get("encrypt", False):
             return jsonify(status_code="fail", message="识别失败")
 
         nums = data.get("nums", 0)
@@ -170,7 +170,7 @@ def face_recogni():
         ret, data = parse_request(data, session)
         if not ret:
             return jsonify(status_code="fail", message=data)
-        if not data.get("encrypt", False):
+        if BaseConfig.CRYPTO_TYPE and not data.get("encrypt", False):
             return jsonify(status_code="fail", message="识别失败")
         embedding = data.get("embedding", None)
         if embedding is None:
