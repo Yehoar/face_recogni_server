@@ -138,7 +138,7 @@ def face_collect():
             embeddings.append(embd)
         embeddings = np.vstack(embeddings)
         dist = FaceHandler.calculate_distance(embeddings)
-        issame = np.all(dist < FaceHandler.threshold)
+        issame = np.all(dist <= FaceHandler.threshold)
         logger.debug(dist)
 
         if not issame:

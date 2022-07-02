@@ -37,7 +37,8 @@ def create_app():
     if BaseConfig.DEBUG:
         from app.api.debug import bp_debug
         application.register_blueprint(bp_debug)
-
+    # else:
+    #     application.threaded = BaseConfig.THREAD_NUM or 1
     # 加载扩展
     db.init_app(application)
     sess.init_app(application)

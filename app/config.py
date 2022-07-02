@@ -58,6 +58,7 @@ class Default:
 # 保存app中不使用的全局设置
 class BaseConfig:
     DEBUG = False
+    THREAD_NUM = 4  # 线程并发数
     BASE_PATH = os.path.dirname(os.path.abspath(__file__))
     PLATFORM = platform.platform().lower()
     # 外部资源文件夹

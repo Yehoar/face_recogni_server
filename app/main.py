@@ -22,6 +22,7 @@ def main():
     ensure_mysql()
     ensure_redis()
     init_env(application)
+    # application.run()
     server = WSGIServer((AppConfig.HOST, AppConfig.PORT), application=application)
     server.serve_forever()
 
